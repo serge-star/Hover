@@ -16,6 +16,7 @@ public final class Hover {
   // MARK: Public Variables
   
   public static var prefference = Prefference()
+  public var requestTimeout: TimeInterval = 15.0
   
   public let environment: HoverEnvironment
   
@@ -507,36 +508,30 @@ extension Hover: HoverProtocol {
 
 // MARK: - Private Extension
 private extension Hover {
-  
   func constructURL(with target: NetworkTarget) -> URLRequest {
+    var request: URLRequest!
     switch target.methodType {
     case .get:
-      return prepareGetRequest(with: target)
-      
+      request = prepareGetRequest(with: target)
     case .put,
         .patch,
         .post:
-      return prepareGeneralRequest(with: target)
-      
+      request = prepareGeneralRequest(with: target)
     case .delete:
-      return prepareDeleteRequest(with: target)
+      request = prepareDeleteRequest(with: target)
     }
+    request.timeoutInterval = requestTimeout
+    return request
   }
   
   func prepareGetRequest(with target: NetworkTarget) -> URLRequest {
     let url = target.pathAppendedURL
     switch target.workType {
     case .requestParameters(let parameters, _):
-      guard let contentType = target.contentType,
-            contentType == .urlFormEncoded else {
-              let url = url.generateUrlWithQuery(with: parameters)
-              var request = URLRequest(url: url)
-              request.prepareRequest(with: target)
-              return request
-            }
-      var request = URLRequest(url: url)
-      request.httpBody = contentType.prepareContentBody(parameters: parameters)
-      return request
+        let url = url.generateUrlWithQuery(with: parameters)
+        var request = URLRequest(url: url)
+        request.prepareRequest(with: target)
+        return request
     default:
       var request = URLRequest(url: url)
       request.prepareRequest(with: target)
